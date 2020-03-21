@@ -61,8 +61,8 @@ public class CService {
 		writer.close();
 		writer = null;
 
-		String compilationCommand="C:\\TDM-GCC-64\\bin\\gcc.exe "+dirName+"\\"+compileFileName +" -o "+ " "+dirName+"\\"+executableFileName;
-
+         //String compilationCommand="C:\\TDM-GCC-64\\bin\\gcc.exe "+dirName+"\\"+compileFileName +" -o "+ " "+dirName+"\\"+executableFileName;
+		String compilationCommand="gcc "+dirName+"\\"+compileFileName +" -o "+ " "+dirName+"\\"+executableFileName;
 		DateFormat df = new SimpleDateFormat("dd/MM/yy HH:mm:ss");
 		Date dateobj = new Date();
 		String currTimeAndDate=df.format(dateobj);
@@ -80,17 +80,36 @@ public class CService {
 			cpojo.setCstr(cCode);
 			System.out.println("=========================================================================");
 			System.out.println("My sb is: "+sb);
-			jsona=getResultForJava(sb);
-			cpojo.setQuestionId(cpayload.getQuestionId());
-			cpojo.setScenario(cpayload.getCpojo().getScenario());
-			cpojo.setCreatedAt(currTimeAndDate);
-			cpojo.setCreatedBy(currentUser.getId());
-			cpojo.setResultstr(jsona.toString());
-			cResponse.setCprogram(cCode);
-			cResponse.setCresult(getJsonArrayAsList(jsona));
-			cResponse.setCstatus("SUCCESS");
-			cRepo.save(cpojo);
-			return cResponse;	
+			if(sb.toString().contains("warning:")) {
+				cpojo.setQuestionId(cpayload.getQuestionId());
+				cpojo.setScenario(cpayload.getCpojo().getScenario());
+				cpojo.setCreatedAt(currTimeAndDate);
+				cpojo.setCreatedBy(currentUser.getId());
+				String error=sb.toString().substring(sb.toString().indexOf("warning:"));
+				System.out.println("Error is: "+error);
+				int r=error.toString().indexOf("]");
+				int m=error.toString().indexOf("warning:");
+				cpojo.setResultstr(error.toString().substring(m, r+1));
+				cResponse.setCprogram(cCode);
+				cResponse.setCerror(error.toString().substring(m, r+1));
+				cResponse.setCprogram(cCode);
+				cResponse.setCstatus("ERROR");
+				cRepo.save(cpojo);
+				return cResponse;
+			}
+			else {
+				jsona=getResultForJava(sb);
+				cpojo.setQuestionId(cpayload.getQuestionId());
+				cpojo.setScenario(cpayload.getCpojo().getScenario());
+				cpojo.setCreatedAt(currTimeAndDate);
+				cpojo.setCreatedBy(currentUser.getId());
+				cpojo.setResultstr(jsona.toString());
+				cResponse.setCprogram(cCode);
+				cResponse.setCresult(getJsonArrayAsList(jsona));
+				cResponse.setCstatus("SUCCESS");
+				cRepo.save(cpojo);
+				return cResponse;
+			}
 		}
 		else{
 			runProcess(executableCommand);
