@@ -24,6 +24,7 @@ public class Question implements Serializable {
     @ManyToOne
     @JoinColumn(name = "scenarioId")
     private Scenario scenario;
+
     @Lob
     private String answer;
 

@@ -1,123 +1,88 @@
 package com.aroha.pet.model;
 
-import java.time.Instant;
-import java.util.List;
-
-import javax.persistence.Column;
+import com.aroha.pet.model.audit.DateAudit;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
 import javax.persistence.Lob;
 
-import org.springframework.data.annotation.CreatedDate;
-
 @Entity
-public class CPojo {
+public class CPojo extends DateAudit {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
 
-	@CreatedDate
-	@Column(insertable = true, updatable = false)
-	private String createdAt;
-	
-	private long createdBy;
+    private long createdBy;
 
-	@Lob
-	private String cstr;
+    @Lob
+    private String cstr;
 
-	@Lob
-	private String resultstr;
+    @Lob
+    private String resultstr;
 
-	@Lob
-	private String exceptionstr;
+    @Lob
+    private String error;
 
-	private String scenario;
+    private String scenario;
 
-	private int questionId;
+    private int questionId;
 
-	public long getId() {
-		return id;
-	}
+    public long getId() {
+        return id;
+    }
 
-	public void setId(long id) {
-		this.id = id;
-	}
+    public void setId(long id) {
+        this.id = id;
+    }
 
-	public String getCreatedAt() {
-		return createdAt;
-	}
+    public String getCstr() {
+        return cstr;
+    }
 
-	public void setCreatedAt(String createdAt) {
-		this.createdAt = createdAt;
-	}
+    public void setCstr(String cstr) {
+        this.cstr = cstr;
+    }
 
-	public String getCstr() {
-		return cstr;
-	}
+    public String getResultstr() {
+        return resultstr;
+    }
 
-	public void setCstr(String cstr) {
-		this.cstr = cstr;
-	}
+    public void setResultstr(String resultstr) {
+        this.resultstr = resultstr;
+    }
 
-	public String getResultstr() {
-		return resultstr;
-	}
+    public String getError() {
+        return error;
+    }
 
-	public void setResultstr(String resultstr) {
-		this.resultstr = resultstr;
-	}
+    public void setError(String error) {
+        this.error = error;
+    }
 
-	public String getExceptionstr() {
-		return exceptionstr;
-	}
+    public String getScenario() {
+        return scenario;
+    }
 
-	public void setExceptionstr(String exceptionstr) {
-		this.exceptionstr = exceptionstr;
-	}
+    public void setScenario(String scenario) {
+        this.scenario = scenario;
+    }
 
-	public String getScenario() {
-		return scenario;
-	}
+    public int getQuestionId() {
+        return questionId;
+    }
 
-	public void setScenario(String scenario) {
-		this.scenario = scenario;
-	}
+    public void setQuestionId(int questionId) {
+        this.questionId = questionId;
+    }
 
-	public int getQuestionId() {
-		return questionId;
-	}
+    public long getCreatedBy() {
+        return createdBy;
+    }
 
-	public void setQuestionId(int questionId) {
-		this.questionId = questionId;
-	}
-	
-	
+    public void setCreatedBy(long createdBy) {
+        this.createdBy = createdBy;
+    }
 
-	public long getCreatedBy() {
-		return createdBy;
-	}
-
-	public void setCreatedBy(long createdBy) {
-		this.createdBy = createdBy;
-	}
-
-	@Override
-	public String toString() {
-		return "CPojo [id=" + id + ", createdAt=" + createdAt + ", createdBy=" + createdBy + ", cstr=" + cstr
-				+ ", resultstr=" + resultstr + ", exceptionstr=" + exceptionstr + ", scenario=" + scenario
-				+ ", questionId=" + questionId + ", getId()=" + getId() + ", getCreatedAt()=" + getCreatedAt()
-				+ ", getCstr()=" + getCstr() + ", getResultstr()=" + getResultstr() + ", getExceptionstr()="
-				+ getExceptionstr() + ", getScenario()=" + getScenario() + ", getQuestionId()=" + getQuestionId()
-				+ ", getCreatedBy()=" + getCreatedBy() + ", getClass()=" + getClass() + ", hashCode()=" + hashCode()
-				+ ", toString()=" + super.toString() + "]";
-	}
-
-
-	
 }
-
-

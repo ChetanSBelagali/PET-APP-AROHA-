@@ -13,161 +13,189 @@ import com.aroha.pet.model.Domain;
 import com.aroha.pet.model.Function;
 import com.aroha.pet.model.Question;
 import com.aroha.pet.model.Scenario;
+import com.aroha.pet.model.Technology;
 import com.aroha.pet.payload.ApiResponse;
 import com.aroha.pet.payload.DeleteDomainPayload;
 import com.aroha.pet.payload.DomainDataRequest;
 import com.aroha.pet.payload.DomainRequest;
 import com.aroha.pet.payload.DomainTable;
+import com.aroha.pet.payload.GetDomainDataPayload;
 import com.aroha.pet.repository.DomainRepository;
 import com.aroha.pet.repository.DomainTableRepository;
 import com.aroha.pet.repository.FunctionRepository;
 import com.aroha.pet.repository.QuestionRepository;
 import com.aroha.pet.repository.ScenarioRepository;
 import java.util.Base64;
+import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 
 @Service
 public class DomainService {
 
-	@Autowired
-	DomainRepository domainRepository;
+    @Autowired
+    private DomainRepository domainRepository;
 
-	@Autowired
-	DomainTableRepository domainTableRepo;
+    @Autowired
+    private DomainTableRepository domainTableRepo;
 
-	@Autowired
-	FunctionRepository functionRepository;
+    @Autowired
+    private FunctionRepository functionRepository;
 
-	@Autowired
-	ScenarioRepository scenarioRepository;
+    @Autowired
+    private ScenarioRepository scenarioRepository;
 
-	@Autowired
-	QuestionRepository questionRepository;
+    @Autowired
+    private QuestionRepository questionRepository;
 
-	@Autowired
-	ScenarioService scenarioService;
+    @Autowired
+    private ScenarioService scenarioService;
 
-	private static final Logger logger = LoggerFactory.getLogger(DomainService.class);
+    @Autowired
+    private TechnologyService techService;
 
-	public List<DomainDataRequest> getAllDomains() {
-		List<Domain> list = domainRepository.findAll();
-		Iterator<Domain> itr = list.iterator();
-		List<DomainDataRequest> DomainList = new ArrayList<DomainDataRequest>();
-		while (itr.hasNext()) {
-			Domain d = itr.next();
-			DomainDataRequest domainData = new DomainDataRequest();
-			domainData.setDomainId(d.getDomainId());
-			domainData.setDomainName(d.getDomainName());
-			DomainList.add(domainData);
-		}
-		return DomainList;
+    private static final Logger logger = LoggerFactory.getLogger(DomainService.class);
 
-	}
+    public GetDomainDataPayload getAllDomains() {
+        List<Domain> list = domainRepository.findAll();
+        Iterator<Domain> itr = list.iterator();
+        List<DomainDataRequest> DomainList = new ArrayList<>();
+        GetDomainDataPayload data = new GetDomainDataPayload();
+        while (itr.hasNext()) {
+            Domain d = itr.next();
+            DomainDataRequest domainData = new DomainDataRequest();
+            domainData.setDomainId(d.getDomainId());
+            domainData.setDomainName(d.getDomainName());
+            DomainList.add(domainData);
+        }
+        if (DomainList.isEmpty()) {
+            data.setMessage("No Data is found");
+            data.setStatusCode(HttpStatus.NO_CONTENT.value());
+        } else {
+            data.setStatusCode(HttpStatus.OK.value());
+            data.setData(DomainList);
+            data.setMessage("SUCCESS");
+        }
+        return data;
 
-	public String saveDomain(Domain domain) {
-		try {
-			domainRepository.save(domain);
-			logger.info("Domain saved successfully");
-		} catch (Exception ex) {
-			logger.error("Domain failed to saved" + ex.getMessage());
-			return ex.getMessage();
-		}
-		return "Domain Saved Successfully";
-	}
+    }
 
-	public List<DomainTable> getDomain() {
-		List<Object[]> d = domainTableRepo.getDomainData();
-		List<DomainTable> list = new ArrayList<>();
-		for (Object[] object : d) {
-			DomainTable domainTable = new DomainTable();
-			domainTable.setQuestionId((int) object[0]);
-			domainTable.setDomainName((String) object[1]);
-			domainTable.setFunctionName((String) object[2]);
-			domainTable.setScenarioTitle((String) object[3]);
-			domainTable.setQuestionDesc((String) object[4]);
-			Scenario scenario = scenarioService.getFile((int) object[5]);
-			byte[] encoded = Base64.getEncoder().encode(scenario.getImage());
-			domainTable.setImage(new String(encoded));
-			list.add(domainTable);
-		}
-		return list;
-	}
+    public GetDomainDataPayload saveDomain(int technologyId, Domain domain) {
 
-	public String updateData(int quetionId, Domain domain, Function function, Scenario scenario, Question question) {
+        Optional<Technology> tech = techService.findById(technologyId);
+        if (!tech.isPresent()) {
+            return new GetDomainDataPayload(HttpStatus.BAD_REQUEST.value(), "Selected technology is missing from the database");
+        }
+        Technology technology = tech.get();
+        domain.setTechnology(technology);
+        technology.getDomain().add(domain);
+        try {
+            domainRepository.save(domain);
+        } catch (Exception ex) {
+            return new GetDomainDataPayload(HttpStatus.BAD_REQUEST.value(), ex.getMessage());
+        }
+        return new GetDomainDataPayload(HttpStatus.OK.value(), "Domain Saved Successfully");
+    }
 
-		Optional<Question> ques = questionRepository.findById(quetionId);
-		if (ques.isPresent()) {
+    public List<DomainTable> getDomain() {
+        List<Object[]> d = domainTableRepo.getDomainData();
+        List<DomainTable> list = new ArrayList<>();
+        for (Object[] object : d) {
+            DomainTable domainTable = new DomainTable();
+            domainTable.setQuestionId((int) object[0]);
+            domainTable.setDomainName((String) object[1]);
+            domainTable.setFunctionName((String) object[2]);
+            domainTable.setScenarioTitle((String) object[3]);
+            domainTable.setQuestionDesc((String) object[4]);
+            Scenario scenario = scenarioService.getFile((int) object[5]);
+            byte[] encoded = Base64.getEncoder().encode(scenario.getImage());
+            domainTable.setImage(new String(encoded));
+            list.add(domainTable);
+        }
+        return list;
+    }
 
-			DomainRequest obj = domainRepository.updateDomainData(quetionId);
-			if (domain != null) {
-				Optional<Domain> objData = domainRepository.findById(obj.getDomainId());
+    public GetDomainDataPayload updateData(int quetionId, Domain domain, Function function, Scenario scenario, Question question) {
 
-				if (!objData.isPresent()) {
-					throw new RuntimeException("Domai with id " + obj.getDomainId() + " not found");
-				}
-				Domain domainObj = objData.get();
-				domainObj.setDomainName(domain.getDomainName());
-				domainRepository.save(domainObj);
-			}
+        Optional<Question> ques = questionRepository.findById(quetionId);
+        if (ques.isPresent()) {
 
-			if (function != null) {
-				Optional<Function> functionData = functionRepository.findById(obj.getFunctionId());
+            DomainRequest obj = domainRepository.updateDomainData(quetionId);
+            if (domain != null) {
+                Optional<Domain> objData = domainRepository.findById(obj.getDomainId());
 
-				if (!functionData.isPresent()) {
-					throw new RuntimeException("Function with id " + obj.getFunctionId() + " not found");
-				}
-				Function functionObj = functionData.get();
-				functionObj.setFunctionName(function.getFunctionName());
-				functionRepository.save(functionObj);
-			}
+                if (!objData.isPresent()) {
+//                    throw new RuntimeException("Domai with id " + obj.getDomainId() + " not found");
+                    return new GetDomainDataPayload(HttpStatus.NO_CONTENT.value(), "Selected domain is missing from the database");
+                }
+                Domain domainObj = objData.get();
+                domainObj.setDomainName(domain.getDomainName());
+                domainRepository.save(domainObj);
+            }
 
-			if (scenario != null) {
-				Optional<Scenario> scenarioData = scenarioRepository.findById(obj.getScenarioId());
+            if (function != null) {
+                Optional<Function> functionData = functionRepository.findById(obj.getFunctionId());
 
-				if (!scenarioData.isPresent()) {
-					throw new RuntimeException("Scenario with id " + obj.getScenarioId() + " not dound");
-				}
-				Scenario scenarioObj = scenarioData.get();
-				scenarioObj.setScenarioTitle(scenario.getScenarioTitle());
-				scenarioRepository.save(scenarioObj);
-			}
+                if (!functionData.isPresent()) {
+//                    throw new RuntimeException("Function with id " + obj.getFunctionId() + " not found");
+                    return new GetDomainDataPayload(HttpStatus.NO_CONTENT.value(), "Selected function is missing from the database");
+                }
+                Function functionObj = functionData.get();
+                functionObj.setFunctionName(function.getFunctionName());
+                functionRepository.save(functionObj);
+            }
 
-			if (question != null) {
-				Optional<Question> questionData = questionRepository.findById(obj.getQuestionId());
-				if (!questionData.isPresent()) {
-					throw new RuntimeException("Question with id " + obj.getQuestionId() + " not found");
-				}
-				Question questionObj = questionData.get();
-				questionObj.setQuestionDesc(question.getQuestionDesc());
-				questionRepository.save(questionObj);
-			}
-		} else {
-			throw new RuntimeException("Question with id " + quetionId + " not present");
-		}
-		if (domain != null || function != null || scenario != null || question != null) {
-			return "Domain Table Updated";
-		}
-		return "";
-	}
+            if (scenario != null) {
+                Optional<Scenario> scenarioData = scenarioRepository.findById(obj.getScenarioId());
 
-	public Object checkDuplicate(Domain domain) {
-		if (domainRepository.existsBydomainName(domain.getDomainName())) {
-			return new ApiResponse(Boolean.TRUE, "Domain name already Exists");
-		}
-		return new ApiResponse(Boolean.FALSE, "Domain not exists");
-	}
+                if (!scenarioData.isPresent()) {
+//                    throw new RuntimeException("Scenario with id " + obj.getScenarioId() + " not dound");
+                    return new GetDomainDataPayload(HttpStatus.NO_CONTENT.value(), "Selected scenario is missing from the database");
+                }
+                Scenario scenarioObj = scenarioData.get();
+                scenarioObj.setScenarioTitle(scenario.getScenarioTitle());
+                scenarioRepository.save(scenarioObj);
+            }
 
-	public DeleteDomainPayload deleteDomain(int domainId) {
-		Optional<Domain> getDomain=domainRepository.findById(domainId);
-		if(!getDomain.isPresent()) {
-			return new DeleteDomainPayload("Domain Not Present" , HttpStatus.NOT_FOUND.value());
-		}
-		Domain domain =getDomain.get();
-		try {
-			domainRepository.delete(domain);
-			return new  DeleteDomainPayload("SuccessFully Deleted", HttpStatus.OK.value());
+            if (question != null) {
+                Optional<Question> questionData = questionRepository.findById(obj.getQuestionId());
+                if (!questionData.isPresent()) {
+//                    throw new RuntimeException("Question with id " + obj.getQuestionId() + " not found");
+                    return new GetDomainDataPayload(HttpStatus.NO_CONTENT.value(), "Selected question is missing from the database");
+                }
+                Question questionObj = questionData.get();
+                questionObj.setQuestionDesc(question.getQuestionDesc());
+                questionRepository.save(questionObj);
+            }
+        } else {
+//            throw new RuntimeException("Question with id " + quetionId + " not present");
+            return new GetDomainDataPayload(HttpStatus.NO_CONTENT.value(), "Selected question is missing from the database");
 
-		}catch(Exception ex) {
-			return new DeleteDomainPayload(ex.getMessage(), HttpStatus.BAD_REQUEST.value());
-		}
-	}
+        }
+        if (domain != null || function != null || scenario != null || question != null) {
+            return new GetDomainDataPayload(HttpStatus.OK.value(),"Domain table updated successfully");
+        }
+        return new GetDomainDataPayload(HttpStatus.OK.value(),"No Changes done");
+    }
+
+    public Object checkDuplicate(Domain domain) {
+        if (domainRepository.existsBydomainName(domain.getDomainName().trim())) {
+            return new ApiResponse(Boolean.TRUE, "Domain name already Exists");
+        }
+        return new ApiResponse(Boolean.FALSE, "Domain doesn't exists");
+    }
+
+    public DeleteDomainPayload deleteDomain(int domainId) {
+        Optional<Domain> getDomain = domainRepository.findById(domainId);
+        if (!getDomain.isPresent()) {
+            return new DeleteDomainPayload("Domain Not Present", HttpStatus.NOT_FOUND.value());
+        }
+        Domain domain = getDomain.get();
+        try {
+            domainRepository.delete(domain);
+            return new DeleteDomainPayload("Domain deleted successfully along with its associated"
+                    + "functions,scenarios and questions", HttpStatus.OK.value());
+
+        } catch (Exception ex) {
+            return new DeleteDomainPayload(ex.getMessage(), HttpStatus.BAD_REQUEST.value());
+        }
+    }
 }

@@ -14,12 +14,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import com.aroha.pet.model.Domain; 
+import com.aroha.pet.model.Domain;
 import com.aroha.pet.model.Function;
 import com.aroha.pet.model.Question;
 import com.aroha.pet.model.Scenario;
 import com.aroha.pet.payload.CSV;
 import com.aroha.pet.payload.DomainRequest;
+import com.aroha.pet.payload.GetDomainDataPayload;
 import com.aroha.pet.security.CurrentUser;
 import com.aroha.pet.security.UserPrincipal;
 import com.aroha.pet.service.DBService;
@@ -36,6 +37,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/api/domain")
@@ -59,8 +61,10 @@ public class DomainController {
     private static final Logger logger = LoggerFactory.getLogger(DomainController.class);
 
     @PostMapping("/savedomain")
-    public ResponseEntity<?> saveDomainData(@RequestBody Domain domain) {
-        return ResponseEntity.ok(domainService.saveDomain(domain));
+    public ResponseEntity<?> saveDomainData(@RequestBody DomainRequest domainRequest) {
+        int technologyId = domainRequest.getTechnologyId();
+        Domain domain = domainRequest.getDomain();
+        return ResponseEntity.ok(domainService.saveDomain(technologyId, domain));
     }
 
     @PostMapping("/checkDuplicateDomain")
@@ -70,9 +74,6 @@ public class DomainController {
 
     @GetMapping("/getDomains")
     public ResponseEntity<?> getDomainData() {
-        if (domainService.getAllDomains().isEmpty()) {
-            return ResponseEntity.ok("No domain found");
-        }
         return ResponseEntity.ok(domainService.getAllDomains());
     }
 
@@ -91,9 +92,6 @@ public class DomainController {
     @PostMapping("/getFunctions")
     public ResponseEntity<?> getAllFunctions(@RequestBody DomainRequest domainData) {
         int domainId = domainData.getDomainId();
-        if (functionService.getAllFunctions(domainId).isEmpty()) {
-            return ResponseEntity.ok("No Function is found");
-        }
         return ResponseEntity.ok(functionService.getAllFunctions(domainId));
     }
 
@@ -119,7 +117,7 @@ public class DomainController {
             return ResponseEntity.ok(scenarioService.createScenario(domainId, functionId, scenario));
         } catch (Exception ex) {
             logger.error("Failed saving scenario" + ex.getMessage());
-            return ResponseEntity.ok(ex.getMessage());
+            return ResponseEntity.ok(new GetDomainDataPayload(HttpStatus.BAD_REQUEST.value(), ex.getMessage()));
         }
 
     }
@@ -138,9 +136,6 @@ public class DomainController {
     public ResponseEntity<?> getAllScenarios(@RequestBody DomainRequest domainData) {
         int domainId = domainData.getDomainId();
         int functionId = domainData.getFunctionId();
-        if (scenarioService.getAllScenario(domainId, functionId).isEmpty()) {
-            return ResponseEntity.ok("No Scenario is Found");
-        }
         return ResponseEntity.ok(scenarioService.getAllScenario(domainId, functionId));
     }
 
@@ -159,7 +154,9 @@ public class DomainController {
             int domainId = domainData.getDomainId();
             int functionId = domainData.getFunctionId();
             int scenarioId = domainData.getScenarioId();
+
             question = domainData.getQuestion();
+
             if (file != null) {
                 try (Reader in = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
                     CSV csv = new CSV(true, ',', in);
@@ -186,24 +183,21 @@ public class DomainController {
             logger.error("question not saved" + ex.getMessage());
             return ResponseEntity.ok(ex.getMessage());
         }
-
     }
 
     @PostMapping("/getQuestions")
-    public ResponseEntity<?> getAllQuestion(@RequestBody DomainRequest domainData) {
+    public ResponseEntity<?> getSQLQuestion(@RequestBody DomainRequest domainData) {
         int scenarioId = domainData.getScenarioId();
-        if (questionService.getQuestionData(scenarioId).isEmpty()) {
-            return ResponseEntity.ok("No Question is Found");
-        }
         return ResponseEntity.ok(questionService.getQuestionData(scenarioId));
     }
+    
 
     @GetMapping("/getDomain")
     public ResponseEntity<?> getDomain() {
-        if (domainService.getDomain().isEmpty()) {
-            return ResponseEntity.ok("No Data Found");
+        if(domainService.getDomain().isEmpty()){
+            return ResponseEntity.ok(new GetDomainDataPayload(HttpStatus.NO_CONTENT.value(),"No data is found"));
         }
-        return ResponseEntity.ok(domainService.getDomain());
+        return ResponseEntity.ok(new GetDomainDataPayload(HttpStatus.OK.value(),domainService.getDomain(),"SUCCESS"));
     }
 
     @RequestMapping(value = "/updateDomain", method = RequestMethod.POST)
@@ -220,26 +214,26 @@ public class DomainController {
 
         return ResponseEntity.ok(domainService.updateData(questionId, domainObj, funObj, scenaObj, questObj));
     }
-    
+
     @PostMapping("/deleteDomainName")
-    public ResponseEntity<?> deleteDomain(@RequestBody DomainRequest domainRequest){
-    	int domainId=domainRequest.getDomainId();
-    	return ResponseEntity.ok(domainService.deleteDomain(domainId));
+    public ResponseEntity<?> deleteDomain(@RequestBody DomainRequest domainRequest) {
+        int domainId = domainRequest.getDomainId();
+        return ResponseEntity.ok(domainService.deleteDomain(domainId));
     }
-    
+
     @PostMapping("/deleteFunctionName")
-    public ResponseEntity<?> deleteFunction(@RequestBody DomainRequest domainRequest){
-    	return ResponseEntity.ok(functionService.deleteFunction(domainRequest.getFunctionId()));
+    public ResponseEntity<?> deleteFunction(@RequestBody DomainRequest domainRequest) {
+        return ResponseEntity.ok(functionService.deleteFunction(domainRequest.getFunctionId()));
     }
-    
+
     @PostMapping("/deleteScenarioName")
-    public ResponseEntity<?> deleteScenarioName(@RequestBody DomainRequest domainRequest){
-    	return ResponseEntity.ok(scenarioService.deleteScenarioName(domainRequest.getScenarioId()));
+    public ResponseEntity<?> deleteScenarioName(@RequestBody DomainRequest domainRequest) {
+        return ResponseEntity.ok(scenarioService.deleteScenarioName(domainRequest.getScenarioId()));
     }
-    
+
     @PostMapping("/deleteQuestionName")
-    public ResponseEntity<?> deleteQuestionName(@RequestBody DomainRequest domainRequest){
-    	return ResponseEntity.ok(questionService.deleteQuestionName(domainRequest.getQuestionId()));
+    public ResponseEntity<?> deleteQuestionName(@RequestBody DomainRequest domainRequest) {
+        return ResponseEntity.ok(questionService.deleteQuestionName(domainRequest.getQuestionId()));
     }
-    
+
 }

@@ -13,4 +13,5 @@ public interface QuestionRepository extends JpaRepository<Question, Integer> {
 
     @Query(value = "select count(*) from question where scenario_id=?1 and question_desc =?2", nativeQuery = true)
     public Integer checkDuplicate(int scenarioId, String questionName);
+     
 }

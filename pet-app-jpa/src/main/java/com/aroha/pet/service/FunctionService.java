@@ -18,6 +18,7 @@ import com.aroha.pet.payload.ApiResponse;
 import com.aroha.pet.payload.DeleteDomainPayload;
 import com.aroha.pet.payload.DomainRequest;
 import com.aroha.pet.payload.FunctionDataRequest;
+import com.aroha.pet.payload.GetDomainDataPayload;
 import com.aroha.pet.repository.DomainRepository;
 import com.aroha.pet.repository.FunctionRepository;
 
@@ -35,11 +36,11 @@ public class FunctionService {
         return functionRepository.save(function);
     }
 
-    public String createFunction(int domainId, Function function) {
+    public GetDomainDataPayload createFunction(int domainId, Function function) {
 
         Optional<Domain> byId = domainRepository.findById(domainId);
         if (!byId.isPresent()) {
-            throw new ResourceNotFoundException("Domain with a id " + domainId + " Not Exist");
+              return new GetDomainDataPayload(HttpStatus.BAD_REQUEST.value(), "Selected domain is mising from the database");
         }
         Domain d = byId.get();
         function.setDomain(d);
@@ -48,13 +49,13 @@ public class FunctionService {
             logger.info("function saved successfully");
         } catch (Exception ex) {
             logger.error("Failed saving function " + ex.getMessage());
-            return ex.getMessage();
+            return new GetDomainDataPayload(HttpStatus.BAD_REQUEST.value(),ex.getMessage());
         }
-        return "Function Saved Successfully";
+        return new GetDomainDataPayload(HttpStatus.OK.value(),"Function Saved Successfully");
 
     }
 
-    public List<FunctionDataRequest> getAllFunctions(int domainId) {
+    public GetDomainDataPayload getAllFunctions(int domainId) {
         List<Function> list = functionRepository.findAll();
         List<FunctionDataRequest> functionDataList = new ArrayList<>();
         Iterator<Function> itr = list.iterator();
@@ -68,28 +69,33 @@ public class FunctionService {
             functionData.setFunctionName(function.getFunctionName());
             functionDataList.add(functionData);
         }
-        return functionDataList;
+        if(functionDataList.isEmpty()){
+            return new GetDomainDataPayload(HttpStatus.NO_CONTENT.value(),"No data is found");
+        }else{
+            return new GetDomainDataPayload(HttpStatus.OK.value(),functionDataList ,"SUCCESS");
+        }    
     }
 
     public Object checkDuplicateFunction(DomainRequest domainData) {
-        if (functionRepository.checkDuplicate(domainData.getDomainId(), domainData.getFunction().getFunctionName()) > 0) {
+        if (functionRepository.checkDuplicate(domainData.getDomainId(), domainData.getFunction().getFunctionName().trim()) > 0) {
             return new ApiResponse(Boolean.TRUE, "Function name already present for the domain ");
         }
         return new ApiResponse(Boolean.FALSE, "Function not present for domain");
     }
-    
+
     public DeleteDomainPayload deleteFunction(int functionId) {
-    	Optional<Function> function=functionRepository.findById(functionId);
-    	if(!function.isPresent()) {
-    		return new DeleteDomainPayload("Function not present",HttpStatus.NOT_FOUND.value());
-    	}
-    	Function funObj=function.get();
-    	try {
-    		functionRepository.delete(funObj);
-    		return new DeleteDomainPayload("Successfully deleted ", HttpStatus.OK.value());
-    	}catch (Exception e) {
-    		return new DeleteDomainPayload(e.getMessage(), HttpStatus.BAD_REQUEST.value());
-		}
+        Optional<Function> function = functionRepository.findById(functionId);
+        if (!function.isPresent()) {
+            return new DeleteDomainPayload("Function not present", HttpStatus.NOT_FOUND.value());
+        }
+        Function funObj = function.get();
+        try {
+            functionRepository.delete(funObj);
+            return new DeleteDomainPayload("Function deleted successfully along with its associated"
+                    + "scenarios and questions", HttpStatus.OK.value());
+        } catch (Exception e) {
+            return new DeleteDomainPayload(e.getMessage(), HttpStatus.BAD_REQUEST.value());
+        }
     }
 
 }

@@ -1,5 +1,6 @@
 package com.aroha.pet.repository;
 
+import com.aroha.pet.model.CPojo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -26,7 +27,7 @@ public interface FeedBackRepository extends JpaRepository<QueryInfo, Long> {
     @Query(value="select d.domain_id,d.domain_name from query_info q \r\n" + 
     		"left join  mentor_feedback m on q.created_at=m.query_date inner join question ques on\r\n" + 
     		"q.question_id=ques.question_id inner join scenario s on s.scenario_id=ques.scenario_id\r\n" + 
-    		"inner join function f on f.function_id=s.function_id inner join domain d on d.domain_id=f.domain_id\r\n" + 
+    		"inner join function_table f on f.function_id=s.function_id inner join domain d on d.domain_id=f.domain_id\r\n" + 
     		"left join question qus on q.question_id=qus.question_id where \r\n" + 
     		"DATE(q.created_at)=DATE(?2) and q.created_by=?1 order by scenario",nativeQuery = true)
     public List<Object[]> getDomainRepo(long created_by, String createdAt);
@@ -59,4 +60,4 @@ public interface FeedBackRepository extends JpaRepository<QueryInfo, Long> {
     		+ "f.function_id =?4 and s.scenario_id =?5 order by scenario;",nativeQuery = true)
     public List<Object[]> getQuestionRepo(long created_by, String createdAt,int domainId,int functionId,int scenarioId);
 
-}
+ }
